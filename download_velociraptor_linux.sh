@@ -3,7 +3,7 @@
 # Author: Yaniv Radunsky @ 10Root
 
 # Default destination folder
-DEFAULT_DEST="/home/tenroot/setup_platform/workdir/velociraptor/velociraptor/tmp"
+DEFAULT_DEST="/home/tenroot/setup_platform/workdir/velociraptor/tmp"
 DEST_FOLDER="${1:-$DEFAULT_DEST}"
 
 # Create VelociraptorPlus subfolder
@@ -17,7 +17,7 @@ get_latest_github_release() {
     local pattern="$3"
 
     local asset_info=$(curl -s "https://api.github.com/repos/$repo/releases" | \
-        jq -r "[.[0].assets[] | select(.name | test(\"$pattern\"))] | last | {name: .name, url: .browser_download_url}")
+        jq -r --arg pat "$pattern" '[.[0].assets[] | select(.name | test($pat))] | last | {name: .name, url: .browser_download_url}')
 
     local name=$(echo "$asset_info" | jq -r '.name')
     local url=$(echo "$asset_info" | jq -r '.url')

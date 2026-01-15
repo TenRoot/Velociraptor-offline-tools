@@ -19,12 +19,29 @@ Invoke-WebRequest -Uri $source -Out $outputFile
 }
 
 function GetFile{
-param ($outputFolder, $source) 
+param ($outputFolder, $source)
 $outputFile = Join-Path -Path $outputFolder -ChildPath $(Split-Path -Path $source -Leaf)
 Invoke-WebRequest -Uri $source -Out $outputFile
 }
 
-cls
+function GetMicrosoftMRT {
+param ($outputFolder)
+# Get the Microsoft Malicious Software Removal Tool (KB890830) using Microsoft's stable redirect URL
+# This URL always points to the latest version
+$downloadUrl = "https://go.microsoft.com/fwlink/?LinkId=212732"
+$tempFile = Join-Path -Path $outputFolder -ChildPath "mrt_temp.exe"
+Invoke-WebRequest -Uri $downloadUrl -Out $tempFile
+# Get version from the downloaded file and rename appropriately
+$fileVersion = (Get-Item $tempFile).VersionInfo.ProductVersion
+if ($fileVersion) {
+    $finalName = "Windows-KB890830-x64-V$fileVersion.exe"
+} else {
+    $finalName = "Windows-KB890830-x64-MRT.exe"
+}
+$finalPath = Join-Path -Path $outputFolder -ChildPath $finalName
+if (Test-Path $finalPath) { Remove-Item $finalPath -Force }
+Rename-Item -Path $tempFile -NewName $finalName
+}
 
 $downloadFolder = Join-Path -Path $destinationFolder -ChildPath "VelociraptorPlus"
 if (-not (Test-Path $downloadFolder)) {
@@ -42,6 +59,7 @@ GetLatestGithubRelease $downloadFolder "yarox24/EvtxHussar" "*windows_amd64.zip"
 
 echo "-- download latest PersistenceSniper --"
 GetLatestGithubRelease $downloadFolder "last-byte/PersistenceSniper" "PersistenceSniper.zip"
+GetFile $downloadFolder "https://raw.githubusercontent.com/ablescia/Windows.PersistenceSniper/main/false_positives.csv"
 
 echo "-- download latest WinPMwem --"
 GetLatestGithubRelease $downloadFolder "Velocidex/WinPmem" "winpmem64.exe"
@@ -162,5 +180,14 @@ GetLatestGithubRelease $downloadFolder "netwrix/pingcastle" "ping*.zip"
 echo "-- download HardeningKitty --"
 GetFile $downloadFolder "https://github.com/0x6d69636b/windows_hardening/archive/refs/heads/master.zip"
 Rename-Item -Path "$downloadFolder\master.zip" -NewName HardeningKitty.zip
+
+echo "-- download Microsoft Malicious Software Removal Tool (KB890830) --"
+GetMicrosoftMRT $downloadFolder
+
+echo "-- download FTK Imager Command Line --"
+Invoke-WebRequest -Uri "https://www.dropbox.com/scl/fi/juz70umd0clt2np4hf0d6/FTKImager-commandline.zip?rlkey=0320go01k20eyh3qutwb0pwg0&dl=1" -OutFile "$downloadFolder\FTKImager-commandline.zip"
+
+echo "-- download latest Chainsaw --"
+GetLatestGithubRelease $downloadFolder "WithSecureLabs/chainsaw" "chainsaw_all_platforms+rules*.zip"
 
 echo "Download finished, Please add Thor license manually"
